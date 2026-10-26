@@ -17,8 +17,8 @@ API surfaces used (verified against the P8 docs RAG):
 
 import uuid
 
-from .scripted import _execute_script
 from ._base import cs_escape
+from .scripted import _execute_script
 
 
 def settings_list_children(setting_path: str) -> dict:

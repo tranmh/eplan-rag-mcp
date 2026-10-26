@@ -3,8 +3,7 @@ Import actions (PXF, DWG, DXF, 3D, PDF comments, etc.)
 Complete implementation with all documented parameters.
 """
 
-from typing import Optional
-from ._base import _get_connected_manager, _build_action
+from ._base import _build_action, _get_connected_manager
 
 
 def import_pxf_project(

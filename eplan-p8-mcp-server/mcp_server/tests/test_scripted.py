@@ -2,7 +2,6 @@ import json
 import os
 import types
 import uuid as real_uuid
-from unittest.mock import MagicMock
 
 import pytest
 

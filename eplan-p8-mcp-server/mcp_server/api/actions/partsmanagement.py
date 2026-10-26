@@ -4,19 +4,18 @@ Complete implementation for exporting and importing parts, addresses,
 constructions, terminals, accessory lists and accessory placements.
 """
 
-from typing import List, Dict, Optional
-from ._base import _get_connected_manager, _build_action
+from ._base import _get_connected_manager
 
 
 def partsmanagement_export(
     export_file: str,
     format: str = "XPamExportXml",
-    part_numbers: List[str] = None,
-    manufacturers: List[str] = None,
-    constructions: List[str] = None,
-    connection_patterns: List[str] = None,
-    accessory_lists: List[str] = None,
-    accessory_placements: List[str] = None,
+    part_numbers: list[str] = None,
+    manufacturers: list[str] = None,
+    constructions: list[str] = None,
+    connection_patterns: list[str] = None,
+    accessory_lists: list[str] = None,
+    accessory_placements: list[str] = None,
     filter_scheme: str = None
 ) -> dict:
     """
@@ -134,7 +133,7 @@ def partsmanagement_import(
 def partsmanagement_export_by_properties(
     export_type: str,
     export_file: str,
-    properties: Dict[int, str],
+    properties: dict[int, str],
     format: str = "XPamExportXml"
 ) -> dict:
     """

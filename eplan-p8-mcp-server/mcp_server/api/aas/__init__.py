@@ -14,11 +14,11 @@ the mapping/builder internals are offline-testable pure Python.
 """
 
 from .export_ import export_part, export_project
-from .import_ import inspect_package, import_parts
+from .import_ import import_parts, inspect_package
 
 __all__ = [
     "export_part",
     "export_project",
-    "inspect_package",
     "import_parts",
+    "inspect_package",
 ]

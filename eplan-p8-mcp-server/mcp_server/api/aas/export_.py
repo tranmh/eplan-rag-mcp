@@ -84,6 +84,7 @@ def export_project(
         dict with the created shells/submodels and the output path.
     """
     import os
+
     from . import builder
 
     submodels = []

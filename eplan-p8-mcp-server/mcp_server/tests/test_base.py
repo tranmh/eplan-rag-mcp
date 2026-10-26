@@ -5,7 +5,6 @@ import pytest
 from api.actions import _base
 from api.actions._base import QuietManagerWrapper, _build_action, _get_connected_manager
 
-
 # --- _build_action -----------------------------------------------------------
 
 def test_build_action_without_params_returns_name():

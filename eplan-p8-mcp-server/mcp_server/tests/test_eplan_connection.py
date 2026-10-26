@@ -77,7 +77,7 @@ def test_connect_falls_back_to_default_port(fake_eplan_modules, monkeypatch):
     fake_eplan_modules.Ping.return_value = True
     m = ec.EPLANConnectionManager()
     m._clr_initialized = True
-    monkeypatch.setattr(m, "get_active_servers", lambda: [])
+    monkeypatch.setattr(m, "get_active_servers", list)
 
     assert m.connect()["port"] == ec.EPLANConnectionManager.DEFAULT_PORT
 

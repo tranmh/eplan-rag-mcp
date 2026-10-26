@@ -2,7 +2,7 @@
 PLC import/export actions (plcservice).
 """
 
-from ._base import _get_connected_manager, _build_action
+from ._base import _build_action, _get_connected_manager
 
 
 def plc_export(
