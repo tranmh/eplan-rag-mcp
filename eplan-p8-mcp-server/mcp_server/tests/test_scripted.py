@@ -50,12 +50,10 @@ def test_invalid_filter_property_rejected_before_execution(captured, func, bad):
     assert captured == []
 
 
-@pytest.mark.skip(reason="aqaa: suspected bug - _CS_IDENTIFIER uses '$' which also matches before a trailing "
-                         "newline, so 'PartNr\\n' is accepted as an identifier (B12)")
 @pytest.mark.parametrize("func", [scripted.parts_db_query, scripted.parts_db_count])
 def test_filter_property_with_trailing_newline_rejected(captured, func):
     result = func(filter_property="PartNr\n", filter_value="x")
-    assert result["success"] is False
+    assert result == scripted._identifier_error("PartNr\n", "filter_property")
     assert captured == []
 
 
