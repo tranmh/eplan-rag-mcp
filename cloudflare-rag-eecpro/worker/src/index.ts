@@ -1,3 +1,4 @@
+/// <reference path="../worker-configuration.d.ts" />
 /**
  * EPLAN EEC Pro RAG MCP Server on Cloudflare Workers
  *
@@ -21,7 +22,7 @@ import { z } from "zod";
 interface VectorMatch {
   id: string;
   score: number;
-  metadata?: Record<string, string>;
+  metadata?: Record<string, VectorizeVectorMetadata>;
 }
 
 // EEC Pro documentation categories (36 categories from docs_md/)
@@ -67,7 +68,7 @@ function createMcpServer(env: Env): McpServer {
       const embResponse = await env.AI.run("@cf/baai/bge-base-en-v1.5", {
         text: [query],
       });
-      const queryVector = embResponse.data[0];
+      const queryVector = (embResponse as { data: number[][] }).data[0];
 
       const vectorQuery: VectorizeQueryOptions = {
         topK: topK ?? 5,
@@ -266,7 +267,7 @@ async function handleMcpRequest(
         const embResponse = await env.AI.run("@cf/baai/bge-base-en-v1.5", {
           text: [query],
         });
-        const queryVector = embResponse.data[0];
+        const queryVector = (embResponse as { data: number[][] }).data[0];
 
         const vectorQuery: VectorizeQueryOptions = {
           topK: Math.min(topK, 20),
@@ -457,7 +458,7 @@ async function handleSearch(
   const embResponse = await env.AI.run("@cf/baai/bge-base-en-v1.5", {
     text: [query],
   });
-  const queryVector = embResponse.data[0];
+  const queryVector = (embResponse as { data: number[][] }).data[0];
 
   const vectorQuery: VectorizeQueryOptions = {
     topK: Math.min(topK, 20),
@@ -515,7 +516,7 @@ async function handleAddVectors(
     const batch = vectors.slice(i, i + BATCH).map((v) => ({
       id: v.id,
       values: v.values,
-      metadata: v.metadata || {},
+      metadata: (v.metadata || {}) as Record<string, VectorizeVectorMetadata>,
     }));
     await env.VECTOR_INDEX.insert(batch);
     inserted += batch.length;
