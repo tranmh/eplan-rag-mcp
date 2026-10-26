@@ -18,7 +18,7 @@ from ._base import _get_connected_manager, cs_escape
 # A value used as a C# member/identifier (not inside a string literal) cannot
 # be escaped safely - it must be a real identifier. Reject anything else to
 # close the injection surface for filter_property etc.
-_CS_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_CS_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\Z")
 
 
 def _identifier_error(value: str, what: str) -> dict:
