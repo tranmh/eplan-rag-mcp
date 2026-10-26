@@ -9,12 +9,14 @@ Requirements:
 - pip install pythonnet mcp
 """
 
+import functools
 import json
 import os
 import sys
-import functools
+
 from mcp.server.fastmcp import FastMCP
-from eplan_connection import get_manager, detect_installed_versions
+
+from eplan_connection import detect_installed_versions, get_manager
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,7 +27,6 @@ sys.path.insert(0, os.path.join(SCRIPT_DIR, "api"))
 
 # Import the actions package (QuietMode execution)
 import api.actions as eplan_actions
-
 
 # ============================================================================
 # CONNECTION MANAGEMENT (Shared / Version-Agnostic)

@@ -7,14 +7,13 @@ Requirements:
 - pip install pythonnet
 """
 
-import sys
-import os
-import logging
-import re
 import json
+import logging
+import os
+import re
+import sys
 import time
 import uuid
-from typing import Optional, List
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("EPLAN")
@@ -162,8 +161,8 @@ class EPLANConnectionManager:
             # Load EPLAN DLLs via LoadFrom so .NET probes the EPLAN Bin directory
             # for dependencies (e.g. Grpc.Core), preventing version conflicts with
             # any system-wide or Python-env assembly of the same name.
-            import System.Reflection
             import System
+            import System.Reflection
 
             def _resolve_from_eplan(sender, args):
                 asm_name = System.Reflection.AssemblyName(args.Name).Name
@@ -238,8 +237,8 @@ class EPLANConnectionManager:
         host = host or self.DEFAULT_HOST
 
         try:
-            from Eplan.EplApi.RemoteClient import EplanRemoteClient
             import System
+            from Eplan.EplApi.RemoteClient import EplanRemoteClient
 
             # Auto-detect port if not specified
             if not port:
@@ -676,7 +675,7 @@ public class QuietExecute_{exec_id}
 
 
 # Singleton
-_manager: Optional[EPLANConnectionManager] = None
+_manager: EPLANConnectionManager | None = None
 
 
 def get_manager(target_version: str = None) -> EPLANConnectionManager:

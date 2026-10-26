@@ -5,7 +5,7 @@ Note: these actions need a mainframe (GUI). Under a headless/remote QuietMode
 session they may not behave as in interactive mode.
 """
 
-from ._base import _get_connected_manager, _build_action
+from ._base import _build_action, _get_connected_manager
 
 
 def open_workspace(workspace_name: str, silent: bool = False) -> dict:

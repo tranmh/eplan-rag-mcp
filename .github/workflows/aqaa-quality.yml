@@ -1,0 +1,312 @@
+# The safety net of eplan-rag-mcp, written by aqaa from what its QA run found:
+# unit tests with coverage and its floor, integration tests against the databases they need, end-to-end tests,
+# lint, SAST and dependency audits (report only until the findings are triaged; SARIF goes to code scanning).
+# Actions are pinned to commit SHAs (the comment names the release); jobs get read-only tokens.
+name: aqaa quality
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  unit-python-eplan-p8-mcp-server-mcp_server:
+    name: Unit tests (python eplan-p8-mcp-server/mcp_server)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: eplan-p8-mcp-server/mcp_server
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: 3.13
+          cache: pip
+          cache-dependency-path: eplan-p8-mcp-server/mcp_server/requirements.txt
+      - name: Install dependencies
+        run: |- # zizmor: ignore[adhoc-packages] test tooling, pinned to exact versions
+          if [ -f .venv-ci/bin/activate ]; then . .venv-ci/bin/activate; fi
+          mkdir -p test-reports
+          python -m venv .venv-ci
+          . .venv-ci/bin/activate && python -m pip install --upgrade pip
+          . .venv-ci/bin/activate && if [ -f pyproject.toml ]; then pip install -e '.[test,dev]' || pip install -e .; fi
+          . .venv-ci/bin/activate && for f in requirements*.txt; do if [ -f "$f" ]; then pip install -r "$f"; fi; done
+          . .venv-ci/bin/activate && pip install pytest==9.1.1 pytest-cov==7.1.0 ruff==0.17.2 'bandit[sarif]==1.9.4' pip-audit==2.10.1
+      - name: Unit tests
+        run: |-
+          if [ -f .venv-ci/bin/activate ]; then . .venv-ci/bin/activate; fi
+          python -m pytest -q -m "not integration and not e2e" --junitxml=test-reports/unit.xml --cov=. --cov-report=xml:test-reports/coverage.xml || { rc=$?; [ "$rc" -eq 5 ] || exit "$rc"; }
+      - name: Coverage floor (40%)
+        run: python3 "$GITHUB_WORKSPACE/ci/coverage_gate.py" cobertura 'test-reports/coverage.xml' 40
+      - if: always()
+        name: Upload test reports
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unit-python-eplan-p8-mcp-server-mcp_server
+          path: eplan-p8-mcp-server/mcp_server/test-reports
+          if-no-files-found: ignore
+          retention-days: 14
+  checks-python-eplan-p8-mcp-server-mcp_server:
+    name: Static analysis (python eplan-p8-mcp-server/mcp_server)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: eplan-p8-mcp-server/mcp_server
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: 3.13
+          cache: pip
+          cache-dependency-path: eplan-p8-mcp-server/mcp_server/requirements.txt
+      - name: Install dependencies
+        run: |- # zizmor: ignore[adhoc-packages] test tooling, pinned to exact versions
+          if [ -f .venv-ci/bin/activate ]; then . .venv-ci/bin/activate; fi
+          mkdir -p test-reports
+          python -m venv .venv-ci
+          . .venv-ci/bin/activate && python -m pip install --upgrade pip
+          . .venv-ci/bin/activate && if [ -f pyproject.toml ]; then pip install -e '.[test,dev]' || pip install -e .; fi
+          . .venv-ci/bin/activate && for f in requirements*.txt; do if [ -f "$f" ]; then pip install -r "$f"; fi; done
+          . .venv-ci/bin/activate && pip install pytest==9.1.1 pytest-cov==7.1.0 ruff==0.17.2 'bandit[sarif]==1.9.4' pip-audit==2.10.1
+      - name: ruff (lint, report only)
+        run: |-
+          if [ -f .venv-ci/bin/activate ]; then . .venv-ci/bin/activate; fi
+          ruff check .
+        continue-on-error: true
+      - name: bandit (sast, report only)
+        run: |-
+          if [ -f .venv-ci/bin/activate ]; then . .venv-ci/bin/activate; fi
+          bandit -r . -x ./tests,./.venv-ci,./node_modules -f sarif -o test-reports/bandit.sarif
+        continue-on-error: true
+      - if: always() && hashFiles('eplan-p8-mcp-server/mcp_server/test-reports/bandit.sarif') != ''
+        continue-on-error: true
+        name: Upload bandit findings to code scanning
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: eplan-p8-mcp-server/mcp_server/test-reports/bandit.sarif
+          category: bandit-python-eplan-p8-mcp-server-mcp_server
+      - name: pip-audit (dependency, report only)
+        run: |-
+          if [ -f .venv-ci/bin/activate ]; then . .venv-ci/bin/activate; fi
+          pip-audit
+        continue-on-error: true
+  unit-shell:
+    name: Unit tests (shell)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: .
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install build tools
+        run: |-
+          T="$(mktemp -d)"
+          cd "$T"
+          curl -fsSL -o bats.tgz "https://github.com/bats-core/bats-core/archive/refs/tags/v1.14.0.tar.gz" && echo "bb537b70b15b732f6d8827dd6578e3d8ce166636ce1f18ea9a074184fcce9177  bats.tgz" | sha256sum -c -
+          curl -fsSL -o support.tgz "https://github.com/bats-core/bats-support/archive/refs/tags/v0.3.0.tar.gz" && echo "7815237aafeb42ddcc1b8c698fc5808026d33317d8701d5ec2396e9634e2918f  support.tgz" | sha256sum -c -
+          curl -fsSL -o assert.tgz "https://github.com/bats-core/bats-assert/archive/refs/tags/v2.2.4.tar.gz" && echo "e305df20c4c36cba4570e10f1cd824efb1ae71d88b5ef474550781ebee04192f  assert.tgz" | sha256sum -c -
+          curl -fsSL -o file.tgz "https://github.com/bats-core/bats-file/archive/refs/tags/v0.4.0.tar.gz" && echo "9b69043241f3af1c2d251f89b4fcafa5df3f05e97b89db18d7c9bdf5731bb27a  file.tgz" | sha256sum -c -
+          mkdir bats && tar -xzf bats.tgz --strip-components 1 -C bats && sudo ./bats/install.sh /usr/local
+          for l in support assert file; do sudo mkdir -p /usr/lib/bats/bats-$l && sudo tar -xzf $l.tgz --strip-components 1 -C /usr/lib/bats/bats-$l; done
+          curl -fsSL -o shellcheck.txz "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz" && echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  shellcheck.txz" | sha256sum -c -
+          tar -xJf shellcheck.txz --strip-components 1 shellcheck-v0.11.0/shellcheck
+          sudo install -m 0755 shellcheck /usr/local/bin/shellcheck
+          cd - > /dev/null
+          rm -rf "$T"
+      - name: Install dependencies
+        run: |-
+          export BATS_LIB_PATH="${BATS_LIB_PATH:-/usr/lib/bats}"
+          mkdir -p test-reports
+      - name: Unit tests
+        run: |-
+          export BATS_LIB_PATH="${BATS_LIB_PATH:-/usr/lib/bats}"
+          T=""; for d in test tests; do if [ -d "$d" ]; then T="$T $d"; fi; done
+          if [ -z "$T" ]; then echo "no bats tests"; exit 0; fi
+          # shellcheck disable=SC2086
+          bats --recursive --allow-empty-suite --formatter tap --report-formatter junit --output test-reports --filter-tags '!integration,!e2e' $T
+      - if: always()
+        name: Upload test reports
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unit-shell
+          path: test-reports
+          if-no-files-found: ignore
+          retention-days: 14
+  checks-shell:
+    name: Static analysis (shell)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: .
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install build tools
+        run: |-
+          T="$(mktemp -d)"
+          cd "$T"
+          curl -fsSL -o bats.tgz "https://github.com/bats-core/bats-core/archive/refs/tags/v1.14.0.tar.gz" && echo "bb537b70b15b732f6d8827dd6578e3d8ce166636ce1f18ea9a074184fcce9177  bats.tgz" | sha256sum -c -
+          curl -fsSL -o support.tgz "https://github.com/bats-core/bats-support/archive/refs/tags/v0.3.0.tar.gz" && echo "7815237aafeb42ddcc1b8c698fc5808026d33317d8701d5ec2396e9634e2918f  support.tgz" | sha256sum -c -
+          curl -fsSL -o assert.tgz "https://github.com/bats-core/bats-assert/archive/refs/tags/v2.2.4.tar.gz" && echo "e305df20c4c36cba4570e10f1cd824efb1ae71d88b5ef474550781ebee04192f  assert.tgz" | sha256sum -c -
+          curl -fsSL -o file.tgz "https://github.com/bats-core/bats-file/archive/refs/tags/v0.4.0.tar.gz" && echo "9b69043241f3af1c2d251f89b4fcafa5df3f05e97b89db18d7c9bdf5731bb27a  file.tgz" | sha256sum -c -
+          mkdir bats && tar -xzf bats.tgz --strip-components 1 -C bats && sudo ./bats/install.sh /usr/local
+          for l in support assert file; do sudo mkdir -p /usr/lib/bats/bats-$l && sudo tar -xzf $l.tgz --strip-components 1 -C /usr/lib/bats/bats-$l; done
+          curl -fsSL -o shellcheck.txz "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz" && echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  shellcheck.txz" | sha256sum -c -
+          tar -xJf shellcheck.txz --strip-components 1 shellcheck-v0.11.0/shellcheck
+          sudo install -m 0755 shellcheck /usr/local/bin/shellcheck
+          cd - > /dev/null
+          rm -rf "$T"
+      - name: Install dependencies
+        run: |-
+          export BATS_LIB_PATH="${BATS_LIB_PATH:-/usr/lib/bats}"
+          mkdir -p test-reports
+      - name: shellcheck (lint, report only)
+        run: |-
+          export BATS_LIB_PATH="${BATS_LIB_PATH:-/usr/lib/bats}"
+          find . -type f \( -name '*.sh' -o -name '*.bash' \) -not -path './.git/*' -not -path '*/node_modules/*' -print0 | xargs -0 -r shellcheck -x -P SCRIPTDIR
+        continue-on-error: true
+  unit-typescript-cloudflare-rag-eecpro-worker:
+    name: Unit tests (typescript cloudflare-rag-eecpro/worker)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: cloudflare-rag-eecpro/worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cloudflare-rag-eecpro/worker/package-lock.json
+      - name: Install dependencies
+        run: |- # zizmor: ignore[adhoc-packages] test tooling, pinned to exact versions
+          mkdir -p test-reports
+          npm ci
+          npm install --no-save --no-audit --no-fund "@vitest/coverage-v8@$(node -p "require('vitest/package.json').version")"
+      - name: Unit tests
+        run: npx vitest run --coverage --coverage.reporter=cobertura --coverage.reportsDirectory=test-reports/coverage --reporter=default --reporter=junit --outputFile.junit=test-reports/unit.xml --exclude '**/*.integration.test.*' --exclude 'e2e/**'
+      - if: always()
+        name: Upload test reports
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unit-typescript-cloudflare-rag-eecpro-worker
+          path: cloudflare-rag-eecpro/worker/test-reports
+          if-no-files-found: ignore
+          retention-days: 14
+  checks-typescript-cloudflare-rag-eecpro-worker:
+    name: Static analysis (typescript cloudflare-rag-eecpro/worker)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: cloudflare-rag-eecpro/worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cloudflare-rag-eecpro/worker/package-lock.json
+      - name: Install dependencies
+        run: |- # zizmor: ignore[adhoc-packages] test tooling, pinned to exact versions
+          mkdir -p test-reports
+          npm ci
+          npm install --no-save --no-audit --no-fund "@vitest/coverage-v8@$(node -p "require('vitest/package.json').version")"
+      - name: eslint (lint, report only)
+        run: if ls eslint.config.* .eslintrc* >/dev/null 2>&1; then npx eslint .; else echo 'no ESLint configuration'; fi
+        continue-on-error: true
+      - name: tsc (lint, report only)
+        run: npx tsc --noEmit
+        continue-on-error: true
+      - name: npm audit (dependency, report only)
+        run: npm audit --audit-level=high --omit=dev
+        continue-on-error: true
+  unit-typescript-cloudflare-rag-eplan-p8-worker:
+    name: Unit tests (typescript cloudflare-rag-eplan-p8/worker)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: cloudflare-rag-eplan-p8/worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: |- # zizmor: ignore[adhoc-packages] test tooling, pinned to exact versions
+          mkdir -p test-reports
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund "@vitest/coverage-v8@$(node -p "require('vitest/package.json').version")"
+      - name: Unit tests
+        run: npx vitest run --coverage --coverage.reporter=cobertura --coverage.reportsDirectory=test-reports/coverage --reporter=default --reporter=junit --outputFile.junit=test-reports/unit.xml --exclude '**/*.integration.test.*' --exclude 'e2e/**'
+      - if: always()
+        name: Upload test reports
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unit-typescript-cloudflare-rag-eplan-p8-worker
+          path: cloudflare-rag-eplan-p8/worker/test-reports
+          if-no-files-found: ignore
+          retention-days: 14
+  checks-typescript-cloudflare-rag-eplan-p8-worker:
+    name: Static analysis (typescript cloudflare-rag-eplan-p8/worker)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: cloudflare-rag-eplan-p8/worker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: |- # zizmor: ignore[adhoc-packages] test tooling, pinned to exact versions
+          mkdir -p test-reports
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund "@vitest/coverage-v8@$(node -p "require('vitest/package.json').version")"
+      - name: eslint (lint, report only)
+        run: if ls eslint.config.* .eslintrc* >/dev/null 2>&1; then npx eslint .; else echo 'no ESLint configuration'; fi
+        continue-on-error: true
+      - name: tsc (lint, report only)
+        run: npx tsc --noEmit
+        continue-on-error: true
+      - name: npm audit (dependency, report only)
+        run: npm audit --audit-level=high --omit=dev
+        continue-on-error: true

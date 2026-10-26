@@ -3,15 +3,14 @@ Reports and evaluations actions.
 Complete implementation with all documented parameters.
 """
 
-from typing import List, Optional
-from ._base import _get_connected_manager, _build_action
+from ._base import _get_connected_manager
 
 
 def update_reports(
     project_name: str = None,
     page_name: str = None,
-    page_names: List[str] = None,
-    page_identifiers: List[str] = None,
+    page_names: list[str] = None,
+    page_identifiers: list[str] = None,
     use_page_filter: bool = False,
     page_filter_name: str = None
 ) -> dict:
@@ -61,8 +60,8 @@ def update_reports(
 def update_model_view_pages(
     project_name: str = None,
     page_name: str = None,
-    page_names: List[str] = None,
-    page_identifiers: List[str] = None,
+    page_names: list[str] = None,
+    page_identifiers: list[str] = None,
     use_page_filter: bool = False,
     page_filter_name: str = None
 ) -> dict:
@@ -106,7 +105,7 @@ def update_model_view_pages(
 
 def create_model_views(
     project_name: str = None,
-    templates: List[str] = None,
+    templates: list[str] = None,
     replace_existing: bool = False
 ) -> dict:
     """
@@ -138,7 +137,7 @@ def create_model_views(
 
 def create_copper_unfolds(
     project_name: str = None,
-    templates: List[str] = None,
+    templates: list[str] = None,
     replace_existing: bool = False
 ) -> dict:
     """
@@ -170,7 +169,7 @@ def create_copper_unfolds(
 
 def create_drilling_views(
     project_name: str = None,
-    templates: List[str] = None,
+    templates: list[str] = None,
     replace_existing: bool = False
 ) -> dict:
     """

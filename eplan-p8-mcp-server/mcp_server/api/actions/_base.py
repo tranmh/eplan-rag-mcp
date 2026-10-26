@@ -6,9 +6,8 @@ Every action executes inside a C# script under QuietMode
 (QuietModes.ShowNoDialogs) so no EPLAN dialog can block unattended runs.
 """
 
-from typing import Optional
-import sys
 import os
+import sys
 
 # Add parent directory to path for imports
 mcp_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,7 +17,7 @@ if mcp_root not in sys.path:
 # Also insert the current folder's parent so 'from .project import ...' style works if needed
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from eplan_connection import get_manager, cs_escape  # noqa: F401  (cs_escape re-exported)
+from eplan_connection import cs_escape, get_manager  # noqa: F401  (cs_escape re-exported)
 
 
 class QuietManagerWrapper:

@@ -7,18 +7,18 @@ These actions access internal EPLAN APIs that aren't available via standard acti
 - PathMap: Variable substitution
 """
 
+import json
 import os
 import re
-import json
 import time
 import uuid
-from typing import List
+
 from ._base import _get_connected_manager, cs_escape
 
 # A value used as a C# member/identifier (not inside a string literal) cannot
 # be escaped safely - it must be a real identifier. Reject anything else to
 # close the injection surface for filter_property etc.
-_CS_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_CS_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\Z")
 
 
 def _identifier_error(value: str, what: str) -> dict:
@@ -144,7 +144,7 @@ def _execute_script(script_content: str, timeout: float = 30.0) -> dict:
 def parts_db_query(
     filter_property: str = None,
     filter_value: str = None,
-    return_properties: List[str] = None,
+    return_properties: list[str] = None,
     limit: int = 100,
 ) -> dict:
     """

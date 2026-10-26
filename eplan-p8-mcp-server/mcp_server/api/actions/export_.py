@@ -3,8 +3,7 @@ Export actions (PDF, DXF, DWG, graphics, PXF, 3D, etc.)
 Complete implementation with all documented parameters.
 """
 
-from typing import List, Optional
-from ._base import _get_connected_manager, _build_action, _execute_with_quiet_mode
+from ._base import _build_action, _execute_with_quiet_mode, _get_connected_manager
 
 
 def export_pdf_project(
@@ -63,8 +62,8 @@ def export_pdf_project(
 
 def export_pdf_pages(
     export_file: str,
-    page_names: List[str] = None,
-    page_identifiers: List[str] = None,
+    page_names: list[str] = None,
+    page_identifiers: list[str] = None,
     project_name: str = None,
     export_scheme: str = None,
     black_white: int = 0,
@@ -173,7 +172,7 @@ def export_dxf_project(
 def export_dxf_pages(
     destination_path: str = None,
     page_name: str = None,
-    page_names: List[str] = None,
+    page_names: list[str] = None,
     project_name: str = None,
     export_scheme: str = None,
     language: str = None,
@@ -256,7 +255,7 @@ def export_dwg_project(
 def export_dwg_pages(
     destination_path: str = None,
     page_name: str = None,
-    page_names: List[str] = None,
+    page_names: list[str] = None,
     project_name: str = None,
     export_scheme: str = None,
     language: str = None,
@@ -335,8 +334,8 @@ def export_dxfdwg_project_scheme(
 
 
 def export_dxfdwg_pages_scheme(
-    page_names: List[str] = None,
-    page_identifiers: List[str] = None,
+    page_names: list[str] = None,
+    page_identifiers: list[str] = None,
     project_name: str = None,
     export_scheme: str = None,
     language: str = None,

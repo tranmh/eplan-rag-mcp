@@ -3,8 +3,7 @@ Renumber actions (devices, pages, cables, terminals, connections).
 Complete implementation with all documented parameters.
 """
 
-from typing import List, Dict, Optional
-from ._base import _get_connected_manager, _build_action
+from ._base import _build_action, _get_connected_manager
 
 
 def renumber_devices(
@@ -216,7 +215,7 @@ def renumber_connections(
     project_name: str = None,
     config_scheme: str = None,
     use_selection: bool = False,
-    groups: Dict[int, dict] = None,
+    groups: dict[int, dict] = None,
     overwrite: int = 0,
     avoid_identical_designations: int = 0,
     visibility: int = 0,

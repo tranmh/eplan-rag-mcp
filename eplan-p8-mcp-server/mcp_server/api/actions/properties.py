@@ -3,8 +3,7 @@ Property actions (project, page, user properties, and generic properties).
 Complete implementation with all documented parameters.
 """
 
-from typing import Optional
-from ._base import _get_connected_manager, _build_action
+from ._base import _build_action, _get_connected_manager
 
 
 def get_project_property(property_id: str, property_index: int = 0) -> dict:
